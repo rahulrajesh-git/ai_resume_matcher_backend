@@ -1,0 +1,8 @@
+& "C:\Program Files\MongoDB\Server\8.2\bin\mongod.exe"
+
+cd "C:\Users\rahul\OneDrive\Desktop\ai resume matcher"
+.venv\Scripts\activate
+python app.py
+
+cd "C:\Users\rahul\OneDrive\Desktop\resume-matcher-frontend"
+npm start
