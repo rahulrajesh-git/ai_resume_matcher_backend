@@ -1,255 +1,149 @@
 # AI Resume Matcher
 
-AI Resume Matcher is a web application that analyzes how well a candidate's resume matches a given Job Description (JD). The system uses Natural Language Processing (NLP) and BERT embeddings to calculate semantic similarity between resumes and job requirements. It also performs keyword gap analysis and stores match history for future reference.
+A full stack web application that scores how well a resume matches a job description using **BERT-based semantic similarity** — going beyond simple keyword matching to understand the actual meaning of the text.
+
+---
 
 ## Features
 
-* Upload resume in PDF format
-* Enter or paste a Job Description
-* Extract text from uploaded resumes
-* Generate BERT-based semantic similarity scores
-* Identify missing keywords from the Job Description
-* Display overall match percentage
-* Store previous match results in MongoDB
-* View recent matching history
-* Responsive React frontend
+- **PDF resume upload** with drag-and-drop support
+- **Semantic match scoring (0–100%)** using BERT embeddings and cosine similarity
+- **Keyword gap analysis** — highlights job description terms missing from the resume
+- **Match history** — stores and displays the last 20 analyses
+- **Animated score visualization** with color-coded results
 
 ---
 
 ## Tech Stack
 
-### Frontend
+**Frontend**
+- React (Hooks, Fetch API, FormData, SVG)
 
-* React.js
-* Axios
-* CSS
+**Backend**
+- Python, Flask (Blueprints, REST API)
+- flask-cors, python-dotenv
 
-### Backend
+**AI / NLP**
+- `sentence-transformers` (`all-MiniLM-L6-v2` BERT model)
+- `scikit-learn` (cosine similarity)
 
-* Flask
-* Flask-CORS
+**PDF Parsing**
+- PyMuPDF (`fitz`) — in-memory text extraction
 
-### AI / NLP
-
-* Sentence Transformers (BERT)
-* Scikit-learn
-
-### Database
-
-* MongoDB
-
-### Other Libraries
-
-* PyPDF2
-* Python-dotenv
-
----
-
-## Project Structure
-
-### Backend
-
-```text
-airesumematcher/
-│
-├── app.py
-├── config.py
-├── .env
-│
-├── routes/
-│   ├── match.py
-│   └── history.py
-│
-├── services/
-│   ├── pdf_service.py
-│   ├── bert_service.py
-│   └── keyword_service.py
-│
-└── db/
-    └── mongo.py
-```
-
-### Frontend
-
-```text
-resumematcherfrontend/
-│
-├── src/
-│   ├── App.js
-│   ├── components/
-│   └── services/
-│
-└── public/
-```
+**Database**
+- MongoDB (`pymongo`)
 
 ---
 
 ## How It Works
 
-1. User uploads a resume PDF.
-2. The backend extracts text from the PDF.
-3. The job description is received from the frontend.
-4. BERT generates embeddings for both resume and JD.
-5. Cosine similarity is calculated to determine match percentage.
-6. Keyword analysis identifies missing skills or requirements.
-7. Results are displayed on the frontend.
-8. Match history is stored in MongoDB.
+1. User uploads a resume PDF and pastes a job description in the React frontend.
+2. Flask extracts raw text from the PDF using PyMuPDF.
+3. BERT (`sentence-transformers`) encodes both the resume and job description into 384-dimensional vectors.
+4. Cosine similarity between the two vectors produces a match score (0–100%).
+5. Missing keywords are identified via set subtraction between the job description and resume text.
+6. The result is saved to MongoDB and returned to the frontend, which displays the score, missing keywords, and match history.
 
 ---
 
-## Installation
+## Project Structure
 
-### Clone the Repository
+```
+ai-resume-matcher/
+├── app.py                  # Entry point — creates and runs the Flask app
+├── config.py               # Centralized environment variable configuration
+├── requirements.txt
+├── .env                     # Environment variables (not committed)
+│
+├── routes/
+│   ├── match.py             # POST /match
+│   └── history.py           # GET /history
+│
+├── services/
+│   ├── bert_service.py      # BERT model loading + cosine similarity
+│   ├── pdf_service.py        # PDF text extraction
+│   └── keyword_service.py   # Missing keyword analysis
+│
+├── db/
+│   └── mongo.py             # MongoDB connection
+│
+└── resume-matcher-frontend/
+    └── src/
+        └── App.js           # React frontend
+```
+
+---
+
+## Setup & Installation
+
+### Prerequisites
+- Python 3.9+
+- Node.js & npm
+- MongoDB installed and running locally
+
+### Backend
 
 ```bash
-git clone https://github.com/your-username/ai-resume-matcher.git
+# Clone the repo
+git clone https://github.com/<your-username>/ai-resume-matcher.git
 cd ai-resume-matcher
-```
 
-### Backend Setup
+# Create and activate a virtual environment
+python -m venv venv
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # macOS/Linux
 
-Create and activate virtual environment:
-
-```bash
-python -m venv .venv
-```
-
-Windows:
-
-```bash
-.venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
+# Install dependencies
 pip install -r requirements.txt
-```
 
-Create a `.env` file:
+# Create a .env file
+echo MONGO_URI=mongodb://localhost:27017/ > .env
+echo MONGO_DB=resume_matcher >> .env
+echo BERT_MODEL=all-MiniLM-L6-v2 >> .env
 
-```env
-MONGO_URI=your_mongodb_connection_string
-```
+# Start MongoDB (in a separate terminal)
+mongod
 
-Run Flask server:
-
-```bash
+# Run the Flask server
 python app.py
 ```
 
-Backend runs on:
+The backend runs on `http://localhost:5000`.
 
-```text
-http://localhost:5000
-```
-
----
-
-### Frontend Setup
-
-Navigate to frontend folder:
+### Frontend
 
 ```bash
-cd resumematcherfrontend
-```
-
-Install dependencies:
-
-```bash
+cd resume-matcher-frontend
 npm install
-```
-
-Run React application:
-
-```bash
 npm start
 ```
 
-Frontend runs on:
-
-```text
-http://localhost:3000
-```
+The frontend runs on `http://localhost:3000`.
 
 ---
 
 ## API Endpoints
 
-### Match Resume
-
-```http
-POST /match
-```
-
-Request:
-
-* resume (PDF file)
-* job_description (text)
-
-Response:
-
-```json
-{
-  "match_score": 85.6,
-  "missing_keywords": [
-    "Docker",
-    "Kubernetes"
-  ]
-}
-```
+| Method | Endpoint    | Description                                  |
+|--------|-------------|-----------------------------------------------|
+| POST   | `/match`    | Accepts a resume PDF + job description, returns match score and missing keywords |
+| GET    | `/history`  | Returns the last 20 match results |
+| GET    | `/health`   | Health check endpoint |
 
 ---
 
-### Match History
+## Architecture Notes
 
-```http
-GET /history
-```
-
-Returns the most recent matching results stored in MongoDB.
-
----
-
-## Sample Use Case
-
-### Job Description
-
-```text
-Python Developer with Flask, MongoDB, Docker, and REST API experience.
-```
-
-### Resume Contains
-
-```text
-Python, Flask, MongoDB, REST APIs
-```
-
-### Output
-
-```text
-Match Score: 87%
-Missing Keywords:
-- Docker
-```
+- **Separation of concerns** — routes handle HTTP only, services contain all business logic, and the database layer is isolated.
+- **BERT model loaded once at startup** to avoid reloading ~90MB of model weights on every request.
+- **Environment-based configuration** via `.env` and `config.py` — no hardcoded secrets.
+- **CORS enabled** between the React frontend (port 3000) and Flask backend (port 5000).
 
 ---
 
-## Future Enhancements
+## Future Improvements
 
-* Multi-resume comparison
-* Skill recommendation system
-* ATS score calculation
-* Resume improvement suggestions
-* Support for DOCX files
-* User authentication and dashboards
-
----
-
-## Author
-
-Rahul
-
-Final Year Engineering Student
-
-AI Resume Matcher Project using Flask, React, BERT, and MongoDB.
+- User authentication for tracking multiple job applications
+- Docker-based deployment for the full stack
+- Section-level scoring (skills, experience, education scored separately)
+- Job description scraping from job boards
